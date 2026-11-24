@@ -265,6 +265,16 @@ jobs:
                   "    }\n%s" % (namespace, resources),
                   1,
               )
+              # appAideBase 变成 library 后，它的 compileOnly/runtimeOnly jar
+              # 不再传递给 app_rewrite，这里直接补到 app 模块上。
+              if is_app:
+                  s += (
+                      "\ndependencies {\n"
+                      "    compileOnly fileTree(dir: '../appAideBase/provider', include: ['*.jar'])\n"
+                      "    runtimeOnly fileTree(dir: '../appAideBase/runtime', include: ['*.jar'])\n"
+                      "}\n"
+                  )
+
               p.write_text(s, encoding='utf-8')
 
           patch_module('appAideBase', 'com.aide.ui.base', False)
