@@ -1,0 +1,50 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.0"
+	
+    defaultConfig {
+		applicationId "io.github.zeroaicy.aide"
+        minSdkVersion 24
+        targetSdkVersion 28
+        versionCode 2008210017
+        versionName "2.2.0.3-[3.2.210316]"
+    }
+	signingConfigs{
+		release{
+			keyAlias "AIDE+"
+			keyPassword "123789456"
+			storePassword "123789456"
+			storeFile file("release.jks")
+		}
+		debug{
+			keyAlias "androiddebug"
+			keyPassword "123789456"
+			storePassword "123789456"
+			storeFile file("debug.jks")
+		}
+		
+	}
+    buildTypes {
+        release {
+            minifyEnabled false
+			shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+	/*
+	//引入卡顿监控实现依赖库
+	api 'io.github.knight-zxw:blockcanary:+'
+	//引入卡顿消息通知及相关展示UI
+	api 'io.github.knight-zxw:blockcanary-ui:+'
+	api "androidx.lifecycle:lifecycle-livedata:2.3.1"
+	//*/
+	
+	api project(':app_rewrite')
+	
+}

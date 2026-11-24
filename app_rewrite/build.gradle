@@ -1,0 +1,43 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.0"
+	
+	ndkVersion "24.0.8215888"
+    defaultConfig {
+        applicationId "com.aide.ui.rewrite"
+        minSdkVersion 24
+        targetSdkVersion 28
+        versionCode 2008210017
+        versionName "3.2.210316"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+
+
+dependencies {
+	compile fileTree(dir: 'libs', include: ['*.jar'])
+	
+	runtimeOnly fileTree(dir: 'runtime', include: ['*.jar'])
+	
+	compileOnly fileTree(dir: 'provider', include: ['.jar'])
+	
+	api "androidx.core:core:1.13.0"
+	api "androidx.preference:preference:+"
+	api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0"
+	
+	// r8 必须脱糖否则只能安卓13使用
+	api project(':appAideBase')
+	//api project(':kotlin')
+	// ecj依赖这个
+	compileOnly "io.github.itsaky:nb-javac-android:17.0.0.3"
+	
+	api 'net.margaritov.preference.colorpicker.ColorPickerPreference:ColorPickerPreference:1.0.0' 
+}
