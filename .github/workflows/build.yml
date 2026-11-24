@@ -206,7 +206,7 @@ jobs:
                   resources = (
                       "    sourceSets {\n"
                       "        main {\n"
-                      "            res.srcDirs = ['.ci-res']\n"
+                      "            res.srcDirs = ['../.ci-res']\n"
                       "        }\n"
                       "    }\n"
                   )
