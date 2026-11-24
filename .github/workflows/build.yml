@@ -142,6 +142,10 @@ jobs:
           patch_module('appAideBase', 'com.aide.ui.base', False)
           patch_module('app_rewrite', 'com.aide.ui.rewrite', True)
 
+          # 两个模块都带 res/xml/file_paths.xml，文件型资源不允许覆盖，
+          # app_rewrite 的版本是超集，base 的那份在 CI 副本里删掉。
+          Path('appAideBase/src/main/res/xml/file_paths.xml').unlink(missing_ok=True)
+
           # AGP 8 不允许 manifest 里再写 package 属性
           m = Path('app_rewrite/src/main/AndroidManifest.xml')
           s = m.read_text(encoding='utf-8')
