@@ -84,6 +84,100 @@ jobs:
               "android.enableJetifier=false\n"
           )
 
+          # appAideBase 与 app_rewrite 的资源是「底包 + 覆盖层」关系，
+          # 直接作为两个 res 目录交给 AGP 会因为同名资源报错。
+          # 这里在 CI 副本里先合并成一棵树：app_rewrite 的定义覆盖 base。
+          import shutil
+          from xml.etree import ElementTree as ET
+
+          ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
+          ET.register_namespace('tools', 'http://schemas.android.com/tools')
+
+          BASE_RES = Path('appAideBase/src/main/res')
+          RW_RES = Path('app_rewrite/src/main/res')
+          MERGED = Path('.ci-res')
+          if MERGED.exists():
+              shutil.rmtree(MERGED)
+          shutil.copytree(BASE_RES, MERGED)
+
+          def res_key(el):
+              tag = el.tag.split('}')[-1]
+              name = el.get('name')
+              if not name:
+                  return None
+              if tag == 'item' and el.get('type'):
+                  return (el.get('type'), name)
+              return (tag, name)
+
+          # 收集 app_rewrite 在每个 values* 限定符下定义的资源键
+          rw_keys = {}
+          for p in RW_RES.rglob('*'):
+              if not p.is_file():
+                  continue
+              q = p.relative_to(RW_RES).parts[0]
+              if not q.startswith('values'):
+                  continue
+              try:
+                  root = ET.parse(p).getroot()
+              except ET.ParseError:
+                  continue
+              keys = rw_keys.setdefault(q, set())
+              for el in list(root):
+                  k = res_key(el)
+                  if k:
+                      keys.add(k)
+
+          # 先从合并树里删掉被覆盖的定义
+          for p in list(MERGED.rglob('*')):
+              if not p.is_file():
+                  continue
+              q = p.relative_to(MERGED).parts[0]
+              if not q.startswith('values') or q not in rw_keys:
+                  continue
+              try:
+                  tree = ET.parse(p)
+              except ET.ParseError:
+                  continue
+              root = tree.getroot()
+              changed = False
+              for el in list(root):
+                  k = res_key(el)
+                  if k and k in rw_keys[q]:
+                      root.remove(el)
+                      changed = True
+              if changed:
+                  tree.write(p, encoding='utf-8', xml_declaration=True)
+
+          # 再把 app_rewrite 的资源覆盖进去
+          for p in RW_RES.rglob('*'):
+              if not p.is_file():
+                  continue
+              rel = p.relative_to(RW_RES)
+              q = rel.parts[0]
+              target = MERGED / rel
+              target.parent.mkdir(parents=True, exist_ok=True)
+              if q.startswith('values') and target.exists():
+                  try:
+                      src_root = ET.parse(p).getroot()
+                      dst_tree = ET.parse(target)
+                      dst_root = dst_tree.getroot()
+                  except ET.ParseError:
+                      shutil.copy2(p, target)
+                      continue
+                  existing = {k for el in list(dst_root) if (k := res_key(el))}
+                  for el in list(src_root):
+                      k = res_key(el)
+                      if k and k in existing:
+                          continue
+                      dst_root.append(el)
+                  dst_tree.write(target, encoding='utf-8', xml_declaration=True)
+              else:
+                  # 非 values 资源：同名同限定符的文件只能留一份
+                  for old in target.parent.glob(p.stem + '.*'):
+                      if old != target:
+                          old.unlink()
+                  shutil.copy2(p, target)
+
           def patch_module(path, namespace, is_app):
               p = Path(path) / 'build.gradle'
               s = p.read_text(encoding='utf-8')
@@ -112,10 +206,7 @@ jobs:
                   resources = (
                       "    sourceSets {\n"
                       "        main {\n"
-                      "            res.srcDirs = [\n"
-                      "                '../appAideBase/src/main/res',\n"
-                      "                'src/main/res'\n"
-                      "            ]\n"
+                      "            res.srcDirs = ['.ci-res']\n"
                       "        }\n"
                       "    }\n"
                   )
