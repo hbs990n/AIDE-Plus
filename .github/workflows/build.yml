@@ -178,6 +178,31 @@ jobs:
                           old.unlink()
                   shutil.copy2(p, target)
 
+          # 底包自带的 public.xml 里有重复 <public> 声明，AGP 8 的 AAPT2 不接受
+          seen_keys = {}
+          for p in sorted(MERGED.rglob('*')):
+              if not p.is_file():
+                  continue
+              q = p.relative_to(MERGED).parts[0]
+              if not q.startswith('values'):
+                  continue
+              try:
+                  tree = ET.parse(p)
+              except ET.ParseError:
+                  continue
+              root = tree.getroot()
+              seen = seen_keys.setdefault(q, set())
+              changed = False
+              for el in reversed(list(root)):
+                  k = res_key(el)
+                  if k and k in seen:
+                      root.remove(el)
+                      changed = True
+                  elif k:
+                      seen.add(k)
+              if changed:
+                  tree.write(p, encoding='utf-8', xml_declaration=True)
+
           def patch_module(path, namespace, is_app):
               p = Path(path) / 'build.gradle'
               s = p.read_text(encoding='utf-8')
