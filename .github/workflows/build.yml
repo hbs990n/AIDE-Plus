@@ -104,6 +104,29 @@ jobs:
               # 原写法 include: ['.jar'] 匹配不到任何 jar
               s = s.replace("include: ['.jar']", "include: ['*.jar']")
 
+              # 两个模块的资源几乎是同一套（app_rewrite 是覆盖层）。
+              # 作为 library 的 appAideBase 不能再把这些资源打进 AAR，
+              # 否则和 app_rewrite 的同名资源在 AGP 8 下会冲突。
+              # 改为在 app_rewrite 里把 base 资源当低优先级 res 目录合并。
+              if is_app:
+                  resources = (
+                      "    sourceSets {\n"
+                      "        main {\n"
+                      "            res.srcDirs = [\n"
+                      "                '../appAideBase/src/main/res',\n"
+                      "                'src/main/res'\n"
+                      "            ]\n"
+                      "        }\n"
+                      "    }\n"
+                  )
+              else:
+                  resources = (
+                      "    sourceSets {\n"
+                      "        main {\n"
+                      "            res.srcDirs = []\n"
+                      "        }\n"
+                      "    }\n"
+                  )
               s = s.replace(
                   'android {',
                   "android {\n"
@@ -111,7 +134,7 @@ jobs:
                   "    compileOptions {\n"
                   "        sourceCompatibility JavaVersion.VERSION_17\n"
                   "        targetCompatibility JavaVersion.VERSION_17\n"
-                  "    }" % namespace,
+                  "    }\n%s" % (namespace, resources),
                   1,
               )
               p.write_text(s, encoding='utf-8')
