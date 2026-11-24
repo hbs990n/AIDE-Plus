@@ -270,7 +270,7 @@ jobs:
           PY
 
       - name: Build release APK
-        run: gradle :app_rewrite:assembleRelease --no-daemon --stacktrace
+        run: gradle :app_rewrite:assembleRelease --no-daemon --stacktrace --info
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
