@@ -179,6 +179,10 @@ jobs:
                   shutil.copy2(p, target)
 
           # 底包自带的 public.xml 里有重复 <public> 声明，AGP 8 的 AAPT2 不接受
+          # 老 AIDE 底包自己定义了 fontStyle / fontProviderFetchStrategy，
+          # 和 androidx.core 1.13 的 attr 冲突，交给 AndroidX 那份即可。
+          DROP_ATTRS = {'fontStyle', 'fontProviderFetchStrategy'}
+
           seen_keys = {}
           for p in sorted(MERGED.rglob('*')):
               if not p.is_file():
@@ -194,6 +198,13 @@ jobs:
               seen = seen_keys.setdefault(q, set())
               changed = False
               for el in reversed(list(root)):
+                  tag = el.tag.split('}')[-1]
+                  name = el.get('name')
+                  if ((tag == 'attr' and name in DROP_ATTRS) or
+                          (tag == 'public' and el.get('type') == 'attr' and name in DROP_ATTRS)):
+                      root.remove(el)
+                      changed = True
+                      continue
                   k = res_key(el)
                   if k and k in seen:
                       root.remove(el)
