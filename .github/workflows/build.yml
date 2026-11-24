@@ -31,11 +31,14 @@ jobs:
         with:
           gradle-version: '8.0.2'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK platform 34
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      # ubuntu-latest 已自带 Android SDK，不要再跑 setup-android@v3：
+      # 它会尝试安装早已废弃的 `tools` 包并失败。
+      - name: Ensure Android SDK platform 34
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export PATH="$PATH:$SDK_ROOT/cmdline-tools/latest/bin"
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
 
       # 这份 2.2 源码是很多年前的 AIDE 工程：settings.gradle 指向不存在的 :app，
       # 没有 gradlew，仓库用的是已关停的 jcenter/bintray，AGP 还是 1.+。
