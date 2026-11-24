@@ -1,3 +1,4 @@
+# 2.2 分支的自动编译：push 到该分支即触发
 name: Build AIDE-Plus 2.2 APK
 
 on:
